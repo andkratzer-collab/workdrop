@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- v3 -->
 <html lang="de">
 <head>
 <meta charset="utf-8">
@@ -129,10 +128,11 @@
 <div id="overlay"><div class="spin"></div><div class="spin-label">Laden…</div></div>
 <div id="toast"></div>
 <script>
-var API='https://script.google.com/macros/s/AKfycbwH1MSZADFzvwdVYHfrD5eHpxEz2nzEurzW7UHjSB8axMH6xmGd-_J2V7cYBp1IRF3BxA/exec';
-var DATA=null,selected=null,cbCount=0;
+var API = 'https://script.google.com/macros/s/AKfycbwH1MSZADFzvwdVYHfrD5eHpxEz2nzEurzW7UHjSB8axMH6xmGd-_J2V7cYBp1IRF3BxA/exec';
+var DATA=null, selected=null;
 var COLORS={Jakob:'var(--jakob)',Paul:'var(--paul)'};
 var AVATAR={Jakob:'👨‍🌾',Paul:'🧑‍🌾'};
+var cbCount=0;
 
 function $(id){return document.getElementById(id);}
 function showOverlay(){$('overlay').classList.add('show');}
@@ -148,34 +148,155 @@ document.querySelectorAll('.tab').forEach(function(tab){
   });
 });
 
-function jsonp(params,callback){
-  var cbName='wd_cb_'+(++cbCount);
-  var timer=setTimeout(function(){
+// JSONP: umgeht CORS komplett
+function jsonp(params, callback) {
+  var cbName = 'wd_cb_' + (++cbCount);
+  var timeout = setTimeout(function(){
     delete window[cbName];
-    var s=document.getElementById(cbName);if(s)s.remove();
-    callback(null);
-  },15000);
-  window[cbName]=function(data){
-    clearTimeout(timer);delete window[cbName];
-    var s=document.getElementById(cbName);if(s)s.remove();
+    var s = document.getElementById(cbName);
+    if(s) s.remove();
+    callback(null, new Error('Timeout'));
+  }, 15000);
+
+  window[cbName] = function(data){
+    clearTimeout(timeout);
+    delete window[cbName];
+    var s = document.getElementById(cbName);
+    if(s) s.remove();
     callback(data);
   };
-  params.callback=cbName;
-  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
-  var s=document.createElement('script');
-  s.id=cbName;s.src=API+'?'+qs;
-  s.onerror=function(){clearTimeout(timer);delete window[cbName];s.remove();callback(null);};
+
+  params.callback = cbName;
+  var qs = Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+  }).join('&');
+
+  var s = document.createElement('script');
+  s.id = cbName;
+  s.src = API + '?' + qs;
+  s.onerror = function(){
+    clearTimeout(timeout);
+    delete window[cbName];
+    s.remove();
+    callback(null, new Error('Script error'));
+  };
   document.head.appendChild(s);
 }
 
-function api(params,onSuccess){
-  jsonp(params,function(data){
-    if(!data){hideOverlay();toast('Fehler beim Laden');return;}
+function api(params, onSuccess) {
+  jsonp(params, function(data, err){
+    if(err || !data){ hideOverlay(); toast('Fehler beim Laden'); return; }
     onSuccess(data);
   });
 }
 
-function load(){showOverlay();api({action:'data'},function(d){DATA=d;render();hideOverlay();});}
+function load(){
+  showOverlay();
+  api({action:'data'}, function(d){ DATA=d; render(); hideOverlay(); });
+}
 function addEntry(name,type){
   showOverlay();
-  api({action:'addEntry',name:name,type:type},function(d){DATA=d;selected=null;render();hideOverlay();confetti();toast(name+': +'+(type==='Pferdestall'?
+  api({action:'addEntry',name:name,type:type}, function(d){
+    DATA=d; selected=null; render(); hideOverlay(); confetti();
+    toast(name+': +'+(type==='Pferdestall'?5:3)+' €');
+  });
+}
+function delEntry(id){
+  if(!confirm('Diesen Eintrag wirklich löschen?'))return;
+  showOverlay();
+  api({action:'deleteEntry',id:id}, function(d){ DATA=d; render(); hideOverlay(); toast('Gelöscht'); });
+}
+function payout(name){
+  if(!confirm('Auszahlung für '+name+' beantragen?'))return;
+  showOverlay();
+  api({action:'payout',name:name}, function(d){ DATA=d; render(); hideOverlay(); toast('Auszahlung beantragt'); });
+}
+function pickPerson(name){selected=name;renderEntry();}
+function clearPick(){selected=null;renderEntry();}
+
+function monthName(key){
+  var m=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  var p=key.split('-');return m[parseInt(p[1],10)-1]+' '+p[0];
+}
+function renderBattle(){
+  var j=DATA.spieler[0],p=DATA.spieler[1];
+  if(DATA.spieler[0].name!=='Jakob'){j=DATA.spieler[1];p=DATA.spieler[0];}
+  $('battle').innerHTML=
+    '<div class="side j '+(j.fuehrt?'win':'')+'">'+
+      '<div class="sname">'+j.name+(j.fuehrt?' <span class="crown">👑</span>':'')+' </div>'+
+      '<div class="sval">'+j.verdienst+'<small> €</small></div></div>'+
+    '<div class="vs">VS</div>'+
+    '<div class="side p '+(p.fuehrt?'win':'')+'">'+
+      '<div class="sname">'+(p.fuehrt?'<span class="crown">👑</span> ':'')+p.name+'</div>'+
+      '<div class="sval">'+p.verdienst+'<small> €</small></div></div>';
+  var total=j.verdienst+p.verdienst,jp=total>0?(j.verdienst/total*100):50;
+  $('tug').innerHTML='<div class="tj" style="width:'+jp+'%"></div><div class="tp" style="width:'+(100-jp)+'%"></div><div class="knob" style="left:'+jp+'%"></div>';
+  var ll=$('leadLine');
+  if(j.verdienst===p.verdienst){ll.innerHTML=total===0?'Noch unentschieden – leg los!':'<span class="g">Gleichstand!</span> '+j.verdienst+' € : '+p.verdienst+' €';}
+  else{var f=j.verdienst>p.verdienst?j:p;ll.innerHTML='<span class="g">'+f.name+' führt</span> mit '+Math.abs(j.verdienst-p.verdienst)+' € Vorsprung';}
+}
+function renderStats(){
+  var html='';
+  DATA.spieler.forEach(function(s){
+    var cls=s.name==='Jakob'?'j':'p';
+    var pct=Math.min(100,Math.round(s.verdienst/DATA.monatsziel*100));
+    var bd=[{key:'20',label:'20 €'},{key:'40',label:'40 €'},{key:'streak',label:(s.streak===1?'1 Tag':s.streak+' Tage')},{key:'ziel',label:'Ziel!'}];
+    var badges=bd.map(function(b){var on=s.badges.indexOf(b.key)!==-1;return '<div class="badge '+(on?'on':'')+'">'+( on?'★ ':'')+b.label+'</div>';}).join('');
+    html+='<div class="stat '+cls+'"><div class="stop"><span class="nm">'+s.name+'</span><span class="pct">'+pct+'% vom Ziel ('+DATA.monatsziel+' €)</span></div>'+
+      '<div class="bar"><div class="fill '+cls+'" style="width:'+pct+'%"></div></div>'+
+      '<div class="meta"><span>'+s.pferdestall+'x Stall · '+s.eier+'x Eier</span><span>'+(s.streak>0?'🔥 '+(s.streak===1?'1 Tag':s.streak+' Tage')+' Streak':'kein Streak')+'</span></div>'+
+      '<div class="badges">'+badges+'</div>'+
+      '<button class="payout" onclick="payout(\''+s.name+'\')">Auszahlung beantragen</button></div>';
+  });
+  $('stats').innerHTML=html;
+}
+function renderEntry(){
+  if(!selected){
+    $('entry').innerHTML='<div style="color:var(--muted);font-size:13px;margin-bottom:10px;font-weight:700;">1. Wer hat gearbeitet?</div>'+
+      '<div class="pick">'+
+        '<button class="pickbtn j" onclick="pickPerson(\'Jakob\')"><span class="av">'+AVATAR['Jakob']+'</span>Jakob</button>'+
+        '<button class="pickbtn p" onclick="pickPerson(\'Paul\')"><span class="av">'+AVATAR['Paul']+'</span>Paul</button>'+
+      '</div>';
+  } else {
+    var col=COLORS[selected];
+    $('entry').innerHTML='<div class="step2"><div class="s2head"><button class="back" onclick="clearPick()">←</button>'+
+      '<span class="s2who"><span class="dot" style="background:'+col+'"></span>'+selected+' – welche Arbeit?</span></div>'+
+      '<div class="btns">'+
+        '<button class="bigbtn horse" onclick="addEntry(\''+selected+'\',\'Pferdestall\')">🐴 Pferdestall<span>+5 €</span></button>'+
+        '<button class="bigbtn egg" onclick="addEntry(\''+selected+'\',\'Eier\')">🥚 Eier abpacken<span>+3 € / Kiste</span></button>'+
+      '</div></div>';
+  }
+}
+function render(){
+  if(!DATA)return;
+  $('monthLabel').textContent=monthName(DATA.aktuellerMonat)+' · Ziel '+DATA.monatsziel+' €';
+  renderBattle();renderStats();
+  $('moti').innerHTML=DATA.motivation.replace(/(\d+ €)/g,'<b>$1</b>');
+  renderEntry();
+  $('histList').innerHTML=DATA.verlauf.length===0?'<div class="empty">Noch keine Einträge diesen Monat.</div>':
+    DATA.verlauf.map(function(e){var col=COLORS[e.name]||'var(--jakob)';
+      return '<div class="row"><div class="l"><span class="t"><span class="dot" style="background:'+col+';margin-right:6px"></span>'+e.name+' · '+e.typ+'</span><span class="d">'+e.datum+'</span></div>'+
+        '<div style="display:flex;align-items:center"><span class="amt">'+e.betrag+' €</span><button class="del" onclick="delEntry(\''+e.id+'\')">Löschen</button></div></div>';
+    }).join('');
+  $('archList').innerHTML=DATA.archiv.length===0?'<div class="empty">Noch kein abgeschlossener Monat.</div>':
+    DATA.archiv.map(function(m){
+      var lines=m.spieler.map(function(s){var w=s.name===m.gewinner;return '<div class="archline '+(w?'win-a':'')+'"><span>'+(w?'👑 ':'')+s.name+'</span><span>'+s.verdienst+' €</span></div>';}).join('');
+      return '<div class="archmonth"><h3>'+monthName(m.monat)+'</h3>'+lines+'</div>';
+    }).join('');
+}
+function confetti(){
+  var colors=['#2dd4ff','#3b6bff','#ff7a3d','#ff3d8b','#ffd23f','#2ee6a6'];
+  for(var i=0;i<80;i++){(function(){
+    var c=document.createElement('div');c.className='conf';
+    c.style.left=Math.random()*100+'vw';c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.transform='rotate('+(Math.random()*360)+'deg)';if(Math.random()>.5)c.style.borderRadius='50%';
+    document.body.appendChild(c);
+    var dur=1500+Math.random()*1600,drift=(Math.random()*220-110);
+    var anim=c.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+drift+'px,'+(window.innerHeight+40)+'px) rotate(760deg)',opacity:1}],{duration:dur,easing:'cubic-bezier(.3,.6,.7,1)'});
+    anim.onfinish=function(){c.remove();};
+  })();}
+}
+load();
+</script>
+</body>
+</html>
