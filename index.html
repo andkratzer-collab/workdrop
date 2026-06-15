@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#07080d">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>WORKDROP</title>
 <style>
   :root{
@@ -18,8 +20,8 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
   html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;}
   body{display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);padding-top:var(--safe-top);}
-  #app{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;background:var(--bg);padding:0 16px 48px;}
-  .wrap{max-width:600px;margin:auto;width:100%;}
+  #app{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);padding:0 16px 48px;}
+  .wrap{max-width:600px;margin:0 auto;width:100%;}
 
   header{padding:26px 0 4px;text-align:center;}
   h1{font-size:46px;font-weight:900;letter-spacing:3px;font-style:italic;
