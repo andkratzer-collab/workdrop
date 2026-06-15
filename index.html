@@ -32,7 +32,6 @@
   .tab.active{background:var(--card2);color:var(--text);}
   .page{display:none;}.page.active{display:block;}
 
-  /* ---- Block 1: Duell ---- */
   .duel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 20px;margin-bottom:16px;}
   .duel-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
   .duel-side{display:flex;flex-direction:column;gap:4px;}
@@ -43,36 +42,30 @@
   .dv small{font-size:20px;font-weight:700;opacity:.65;}
   .duel-side.j .dv{color:var(--jakob);}
   .duel-side.p .dv{color:var(--paul);}
-
   .tug{height:20px;border-radius:10px;overflow:hidden;display:flex;border:1px solid var(--line);position:relative;background:#0a0c14;}
   .tug .tj{background:var(--jakob);transition:width .6s cubic-bezier(.4,1.3,.5,1);}
   .tug .tp{background:var(--paul);transition:width .6s cubic-bezier(.4,1.3,.5,1);}
   .tug .knob{position:absolute;top:-3px;width:4px;height:26px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left .6s cubic-bezier(.4,1.3,.5,1);}
-
   .duel-status{text-align:center;font-size:16px;font-weight:800;margin-top:16px;}
   .duel-status .g{color:var(--gold);}
   .duel-hint{text-align:center;font-size:13px;color:var(--muted);margin-top:6px;}
 
-  /* ---- Block 2: Fortschritt ---- */
   .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:12px;}
-  .stat-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+  .stat-top{display:flex;align-items:baseline;justify-content:space-between;}
   .snm{font-weight:800;font-size:18px;}
   .snm .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;}
-  .spct{font-size:13px;color:var(--muted);font-weight:700;}
-  .bar{height:12px;background:#0a0c14;border-radius:6px;overflow:hidden;}
-  .fill{height:100%;border-radius:6px;transition:width .5s ease;}
-  .fill.j{background:var(--jakob);}
-  .fill.p{background:var(--paul);}
-  .smeta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:12px;}
+  .spct{font-size:14px;color:var(--muted);font-weight:700;}
+  .smeta{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-top:12px;}
   .earned{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
   .chip{font-size:12px;font-weight:800;padding:6px 11px;border-radius:20px;color:#0a0c14;background:var(--gold);}
-  .payout{width:100%;margin-top:14px;background:transparent;color:var(--green);border:1px solid rgba(46,230,166,.35);border-radius:11px;padding:14px;font-weight:800;font-size:14px;cursor:pointer;}
 
-  /* ---- Block 3: Eintragen ---- */
+  .payout-all{width:100%;margin:6px 0 2px;background:rgba(46,230,166,.10);color:var(--green);border:1px solid rgba(46,230,166,.45);border-radius:14px;padding:16px;font-weight:800;font-size:16px;cursor:pointer;}
+  .payout-all:active{transform:scale(.98);}
+
   .section-title{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:26px 0 14px;font-weight:800;}
   .pickq{color:var(--muted);font-size:14px;margin-bottom:12px;font-weight:700;}
   .pick{display:flex;gap:12px;}
-  .pickbtn{flex:1;border:none;border-radius:18px;padding:38px 8px;font-size:24px;font-weight:900;color:#fff;cursor:pointer;transition:.12s;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .pickbtn{flex:1;border:none;border-radius:18px;padding:38px 8px;font-size:24px;font-weight:900;cursor:pointer;transition:.12s;display:flex;flex-direction:column;align-items:center;gap:10px;}
   .pickbtn:active{transform:scale(.96);}
   .pickbtn .av{font-size:48px;line-height:1;}
   .pickbtn.j{background:var(--jakob);color:#06222b;}
@@ -89,7 +82,6 @@
   .horse{background:#5a6b8c;}
   .egg{background:#b8862f;}
 
-  /* ---- Verlauf / Archiv ---- */
   .row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
   .row .l{display:flex;flex-direction:column;gap:3px;}
   .row .t{font-weight:800;}.row .t .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;}
@@ -123,6 +115,7 @@
   <div class="page active" id="comp">
     <div class="duel" id="duel"></div>
     <div id="stats"></div>
+    <button class="payout-all" onclick="payout()">✓ Ausgezahlt – beide auf 0 setzen</button>
     <div class="section-title">Arbeit eintragen</div>
     <div id="entry"></div>
   </div>
@@ -188,10 +181,10 @@ function delEntry(id){
   showOverlay();
   api({action:'deleteEntry',id:id},function(d){DATA=d;render();hideOverlay();toast('Gelöscht');});
 }
-function payout(name){
-  if(!confirm('Auszahlung für '+name+' beantragen?'))return;
+function payout(){
+  if(!confirm('Beide Konten als ausgezahlt markieren und auf 0 setzen?'))return;
   showOverlay();
-  api({action:'payout',name:name},function(d){DATA=d;render();hideOverlay();toast('Auszahlung beantragt');});
+  api({action:'payout'},function(d){DATA=d;render();hideOverlay();toast('Ausgezahlt – zurückgesetzt');});
 }
 function pickPerson(name){selected=name;renderEntry();}
 function clearPick(){selected=null;renderEntry();}
@@ -228,19 +221,15 @@ function renderDuel(){
 function renderStats(){
   var html='';
   DATA.spieler.forEach(function(s){
-    var cls=s.name==='Jakob'?'j':'p';
     var col=COLORS[s.name];
-    var pct=Math.min(100,Math.round(s.verdienst/DATA.monatsziel*100));
-    var earned='';
-    var labels={'20':'20 €','40':'40 €','ziel':'Ziel erreicht!','streak':'🔥 Streak'};
+    var labels={'20':'20 €','40':'40 €','streak':'🔥 Streak'};
     var chips=s.badges.filter(function(b){return labels[b];}).map(function(b){return '<span class="chip">'+labels[b]+'</span>';}).join('');
-    if(chips)earned='<div class="earned">'+chips+'</div>';
+    var earned=chips?'<div class="earned">'+chips+'</div>':'';
     html+='<div class="stat">'+
-      '<div class="stat-top"><span class="snm"><span class="dot" style="background:'+col+'"></span>'+s.name+'</span><span class="spct">'+pct+'% vom Ziel · '+DATA.monatsziel+' €</span></div>'+
-      '<div class="bar"><div class="fill '+cls+'" style="width:'+pct+'%"></div></div>'+
-      '<div class="smeta"><span>'+s.eier+'× Eier · '+s.pferdestall+'× Stall</span><span>'+(s.streak>0?'🔥 '+(s.streak===1?'1 Tag':s.streak+' Tage'):'kein Streak')+'</span></div>'+
+      '<div class="stat-top"><span class="snm"><span class="dot" style="background:'+col+'"></span>'+s.name+'</span>'+
+        '<span class="spct">'+(s.streak>0?'🔥 '+(s.streak===1?'1 Tag':s.streak+' Tage'):'kein Streak')+'</span></div>'+
+      '<div class="smeta"><span>'+s.eier+'× Eier · '+s.pferdestall+'× Stall</span></div>'+
       earned+
-      '<button class="payout" onclick="payout(\''+s.name+'\')">Auszahlung beantragen</button>'+
     '</div>';
   });
   $('stats').innerHTML=html;
@@ -257,7 +246,7 @@ function renderEntry(){
 
 function render(){
   if(!DATA)return;
-  $('monthLabel').textContent=monthName(DATA.aktuellerMonat)+' · Ziel '+DATA.monatsziel+' €';
+  $('monthLabel').textContent=monthName(DATA.aktuellerMonat);
   renderDuel();renderStats();renderEntry();
   $('histList').innerHTML=DATA.verlauf.length===0?'<div class="empty">Noch keine Einträge diesen Monat.</div>':DATA.verlauf.map(function(e){var col=COLORS[e.name]||'var(--jakob)';return '<div class="row"><div class="l"><span class="t"><span class="dot" style="background:'+col+'"></span>'+e.name+' · '+e.typ+'</span><span class="d">'+e.datum+'</span></div><div style="display:flex;align-items:center"><span class="amt">'+e.betrag+' €</span><button class="del" onclick="delEntry(\''+e.id+'\')">Löschen</button></div></div>';}).join('');
   $('archList').innerHTML=DATA.archiv.length===0?'<div class="empty">Noch kein abgeschlossener Monat.</div>':DATA.archiv.map(function(m){var lines=m.spieler.map(function(s){var w=s.name===m.gewinner;return '<div class="archline '+(w?'win-a':'')+'"><span>'+(w?'👑 ':'')+s.name+'</span><span>'+s.verdienst+' €</span></div>';}).join('');return '<div class="archmonth"><h3>'+monthName(m.monat)+'</h3>'+lines+'</div>';}).join('');
