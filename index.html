@@ -258,6 +258,7 @@ function confetti(){
   var colors=['#2dd4ff','#ff7a3d','#ffd23f','#2ee6a6'];
   for(var i=0;i<70;i++){(function(){var c=document.createElement('div');c.className='conf';c.style.left=Math.random()*100+'vw';c.style.background=colors[Math.floor(Math.random()*colors.length)];c.style.transform='rotate('+(Math.random()*360)+'deg)';if(Math.random()>.5)c.style.borderRadius='50%';document.body.appendChild(c);var dur=1500+Math.random()*1600,drift=(Math.random()*220-110);var anim=c.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+drift+'px,'+(window.innerHeight+40)+'px) rotate(760deg)',opacity:1}],{duration:dur,easing:'cubic-bezier(.3,.6,.7,1)'});anim.onfinish=function(){c.remove();};})();}
 }
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
 load();
 </script>
 </body>
