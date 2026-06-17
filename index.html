@@ -184,7 +184,9 @@ function delEntry(id){
   api({action:'deleteEntry',id:id},function(d){DATA=d;render();hideOverlay();toast('Gelöscht');});
 }
 function payout(){
-  if(!confirm('Beide Konten als ausgezahlt markieren und auf 0 setzen?'))return;
+    var extra='';
+    if(DATA.teamStreak>=7){ extra=' Team-Streak-Bonus von je '+(DATA.teamBonus||0).toFixed(2).replace('.',',')+' € wird dazugerechnet.'; }
+    if(!confirm('Beide Konten als ausgezahlt markieren und auf 0 setzen?'+extra))return;
   showOverlay();
   api({action:'payout'},function(d){DATA=d;render();hideOverlay();toast('Ausgezahlt – zurückgesetzt');});
 }
@@ -217,7 +219,19 @@ function renderDuel(){
   }
   html+='<div class="duel-status">'+status+'</div>';
   if(hint)html+='<div class="duel-hint">'+hint+'</div>';
-  $('duel').innerHTML=html;
+if(DATA.teamStreak!==undefined){
+      var ts=DATA.teamStreak, tb=DATA.teamBonus||0;
+      var tColor = ts>=7 ? 'var(--green)' : 'var(--muted)';
+      html+='<div class="team-streak" style="text-align:center;margin-top:14px;padding:12px;border-radius:12px;background:var(--card2);">'+
+        '<span style="font-size:15px;font-weight:800;color:'+tColor+';">🔥 Team-Streak: '+ts+(ts===1?' Tag':' Tage')+'</span>';
+      if(ts>=7){
+        html+='<div style="font-size:13px;color:var(--green);margin-top:4px;">Bonus aktiv: je +'+tb.toFixed(2).replace('.',',')+' € bei Auszahlung</div>';
+      } else {
+        html+='<div style="font-size:13px;color:var(--muted);margin-top:4px;">Noch '+(7-ts)+(7-ts===1?' Tag':' Tage')+' gemeinsam bis zum Bonus</div>';
+      }
+      html+='</div>';
+    }
+    $('duel').innerHTML=html;
 }
 
 function renderStats(){
